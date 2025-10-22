@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>NUCH BOT — Over 2 Strategy</title>
+  <style>
+    :root{
+      --bg:#070812; --card:#0f1420; --muted:#9aa3b2; --accent:#00e0ff;
+      --green:#28a745; --red:#dc3545; --yellow:#ffc107; --purple:#7e5cff;
+      --glass: rgba(255,255,255,0.03);
+      --panel-radius:12px; --element-radius:8px;
+    }
+    *{box-sizing:border-box; margin:0; padding:0;}
+    html,body{height:100%;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#02030a 0%, #071022 50%, #0a1528 100%);color:#e6eef6; overflow-x:hidden;}
+    .container{max-width:100%;margin:0 auto;padding:10px;display:flex;flex-direction:column;gap:12px;}
+    .panel{background:linear-gradient(165deg,var(--card) 0%, #0b1320 100%);border-radius:var(--panel-radius);padding:16px;box-shadow:0 8px 25px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.05);}
+    .panel-header{margin-bottom:15px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.05);}
+    h1{margin:0;font-size:18px;color:var(--accent);font-weight:800;}
+    .subtitle{color:var(--muted);font-size:12px;margin-top:4px;}
+    label{display:block;font-size:13px;color:var(--muted);margin-top:12px;font-weight:600;}
+    input[type="text"], input[type="password"], input[type="number"], select {
+      width:100%;padding:12px;border-radius:var(--element-radius);border:1px solid rgba(255,255,255,0.08);background:linear-gradient(180deg,#08101a 0%, #060d15 100%);color:#e6eef6;font-size:14px;margin-top:4px;}
+    input:focus, select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,224,255,0.2);outline:none;}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
+    .btn{width:100%;padding:14px;border-radius:var(--element-radius);border:none;cursor:pointer;font-weight:800;font-size:14px;transition:all 0.3s ease;}
+    .btn-start{background:linear-gradient(135deg,var(--green),#1fa84a);color:white;}
+    .btn-stop{background:linear-gradient(135deg,var(--red),#b72828);color:white;}
+    .stat-big{font-size:22px;font-weight:900;color:var(--accent);}
+    .small{font-size:11px;color:var(--muted);}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0;}
+    .stat-card{background:rgba(255,255,255,0.03);padding:10px;border-radius:var(--element-radius);text-align:center;}
+    .stat-value{font-size:16px;font-weight:800;color:var(--accent);}
+    .stat-label{font-size:10px;color:var(--muted);margin-top:2px;}
+    #circle{width:120px;height:120px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:48px;font-weight:900;color:#fff;background:linear-gradient(135deg,#111827 0%, #08101b 100%);margin:auto;border:2px solid rgba(0,224,255,0.2);}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    th,td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:center;}
+    th{color:var(--muted);font-weight:700;font-size:11px;background:rgba(255,255,255,0.02);}
+    tr:hover{background:rgba(255,255,255,0.02);}
+    .log-wrap{height:250px;overflow:auto;border-radius:var(--element-radius);background:rgba(255,255,255,0.02);}
+    .win{color:var(--green);font-weight:800;}
+    .loss{color:var(--red);font-weight:800;}
+    .banner-wrap{overflow:hidden;padding:12px 0;background:linear-gradient(90deg, rgba(255,0,90,0.1), rgba(255,122,0,0.1));}
+    .banner {
+      display:inline-block;
+      white-space:nowrap;
+      padding-left:100%;
+      font-weight:800;
+      font-size:16px;
+      animation: moveLeft 15s linear infinite;
+      color:var(--accent);
+    }
+    @keyframes moveLeft { 0% { transform: translateX(0%);} 100% { transform: translateX(-100%);} }
+    .freq-bar-container{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px;}
+    .freq-bar{padding:8px;border-radius:var(--element-radius);text-align:center;background:rgba(255,255,255,0.02);font-size:12px;position:relative;}
+    .freq-bar.highlight{background:linear-gradient(135deg, var(--green), #1fa84a);color:#000;font-weight:800;}
+    .freq-bar.secondary{background:linear-gradient(135deg, var(--yellow), #ffb347);color:#000;font-weight:800;}
+    .freq-bar.low-digit{background:linear-gradient(135deg, #ff6b6b, #ff8e8e);color:#000;}
+    .control-group{background:rgba(255,255,255,0.02);padding:12px;border-radius:var(--element-radius);margin:12px 0;}
+    .switch{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;}
+    .switch input[type="checkbox"]{width:16px;height:16px;}
+    #miniLog{height:120px;overflow:auto;margin-top:10px;padding:12px;border-radius:var(--element-radius);background:rgba(255,255,255,0.02);font-size:12px;line-height:1.3;}
+    .log-entry{margin-bottom:6px;padding:6px;border-radius:6px;background:rgba(255,255,255,0.02);}
+    .log-time{color:var(--accent);font-weight:600;font-size:11px;}
+    .strategy-indicator{display:inline-block;padding:4px 8px;border-radius:4px;font-size:10px;font-weight:800;margin-left:6px;}
+    .ready{background:var(--green);color:white;}
+    .waiting{background:var(--yellow);color:black;}
+    .blocked{background:var(--red);color:white;}
+
+    @media (min-width: 768px) {
+      .container{flex-direction:row;padding:15px;}
+      .panel{flex:1;}
+    }
+  </style>
+</head>
+<body>
+  <div class="banner-wrap">
+    <div class="banner">⚡ NUCH BOT — OVER 2 STRATEGY • Advanced Entry Timing • 3-Run Maximum</div>
+  </div>
+
+  <div class="container">
+    <!-- Left Panel - Controls -->
+    <div class="panel">
+      <div class="panel-header">
+        <h1>🎯 OVER 2 STRATEGY BOT</h1>
+        <div class="subtitle">Advanced entry timing with 3-run maximum per session</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="totalProfit">$0.00</div>
+          <div class="stat-label">PROFIT</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="tradeCount">0</div>
+          <div class="stat-label">TRADES</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="sessionRuns">0/3</div>
+          <div class="stat-label">SESSION RUNS</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="winRate">0%</div>
+          <div class="stat-label">WIN RATE</div>
+        </div>
+      </div>
+
+      <label>🔑 Deriv API Token</label>
+      <input id="token" type="password" placeholder="Enter your Deriv API token" />
+
+      <div class="grid2">
+        <div>
+          <label>📈 Market</label>
+          <input id="market" type="text" value="1HZ100V" />
+        </div>
+        <div>
+          <label>🔍 Window Size</label>
+          <input id="window" type="number" min="20" max="50" value="30" />
+        </div>
+      </div>
+
+      <label>🎯 Strategy Status</label>
+      <div id="strategyStatus" style="padding:10px; border-radius:var(--element-radius); background:rgba(255,0,0,0.1); color:#ff6b6b; font-size:12px; font-weight:600;">
+        ⏳ Waiting for strategy conditions...
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>💰 Base Stake</label>
+          <input id="stake" type="number" min="0.35" step="0.01" value="0.35" />
+        </div>
+        <div>
+          <label>📊 Current Stake</label>
+          <input id="currentStake" type="text" readonly value="$0.35" />
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label style="margin-top:0;">🛑 Auto Stop Conditions</label>
+        <div class="switch">
+          <input type="checkbox" id="stopOnProfit" checked />
+          <label style="margin:0">Profit at: $</label>
+          <input id="profitLimit" type="number" min="1.00" step="0.50" value="3.00" style="width:70px;padding:8px;" />
+        </div>
+        <div class="switch">
+          <input type="checkbox" id="stopOnLoss" checked />
+          <label style="margin:0">Loss at: -$</label>
+          <input id="lossLimit" type="number" min="1.00" step="0.50" value="5.00" style="width:70px;padding:8px;" />
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:15px;">
+        <button class="btn btn-start" id="startBtn">🚀 START BOT</button>
+        <button class="btn btn-stop" id="stopBtn">🛑 STOP BOT</button>
+      </div>
+
+      <label style="margin-top:15px;">📝 Strategy Log</label>
+      <div id="miniLog"></div>
+    </div>
+
+    <!-- Right Panel - Live Data -->
+    <div class="panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;">
+        <div style="font-weight:800;font-size:16px;"> 📊 LIVE STRATEGY ANALYSIS</div>
+        <div style="font-size:12px;color:var(--muted)">Symbol: <span id="liveSymbol">1HZ100V</span></div>
+      </div>
+
+      <div style="display:flex;gap:15px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
+        <div style="text-align:center">
+          <div id="circle">
+            <div id="circleDigit">-</div>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:var(--muted)">
+            Current: <strong id="currentDigit">—</strong>
+          </div>
+          <div style="margin-top:4px;font-size:14px;font-weight:800;color:var(--accent)">
+            Entry: <strong id="barrierText">—</strong>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:200px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+            <div class="stat-card">
+              <div class="stat-value" id="lowDigitTouches">0</div>
+              <div class="stat-label">LOW TOUCHES</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="consecutiveRuns">0</div>
+              <div class="stat-label">CONSECUTIVE</div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-weight:800;margin-bottom:8px;color:var(--accent);font-size:13px;">Digit Analysis</div>
+            <div id="freqBars" class="freq-bar-container"></div>
+            <div style="margin-top:8px;font-size:10px;color:var(--muted);text-align:center;">
+              <span style="color:#ff6b6b">■</span> Low Digits (0,1,2) •
+              <span style="color:#ffb347">■</span> Secondary •
+              <span style="color:#28a745">■</span> Primary Entry
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-weight:800;margin-bottom:8px;font-size:14px;">🎯 TRADE EXECUTIONS</div>
+      <div class="log-wrap">
+        <table id="logTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>TIME</th>
+              <th>ENTRY</th>
+              <th>STAKE</th>
+              <th>RESULT</th>
+              <th>P/L</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ws = null;
+    const state = {
+      token: '',
+      market: '1HZ100V',
+      window: 30,
+      ticks: [],
+      isRunning: false,
+      currentStake: 0.35,
+      baseStake: 0.35,
+      tradeCount: 0,
+      winCount: 0,
+      lossStreak: 0,
+      totalProfit: 0,
+      waitingResult: false,
+      contractId: null,
+      lastBarrier: null,
+      // Over 2 Strategy Variables
+      lowDigitTouches: 0,
+      sessionRuns: 0,
+      maxSessionRuns: 3,
+      lastLowDigitTime: 0,
+      strategyReady: false,
+      consecutiveRuns: 0
+    };
+
+    // DOM Elements
+    const elements = {
+      miniLog: document.getElementById('miniLog'),
+      totalProfit: document.getElementById('totalProfit'),
+      tradeCount: document.getElementById('tradeCount'),
+      sessionRuns: document.getElementById('sessionRuns'),
+      winRate: document.getElementById('winRate'),
+      circleDigit: document.getElementById('circleDigit'),
+      currentDigit: document.getElementById('currentDigit'),
+      barrierText: document.getElementById('barrierText'),
+      lowDigitTouches: document.getElementById('lowDigitTouches'),
+      consecutiveRuns: document.getElementById('consecutiveRuns'),
+      freqBars: document.getElementById('freqBars'),
+      strategyStatus: document.getElementById('strategyStatus'),
+      logTableBody: document.querySelector('#logTable tbody'),
+      liveSymbol: document.getElementById('liveSymbol')
+    };
+
+    function addMini(msg, type = 'info') {
+      const t = new Date().toLocaleTimeString();
+      const color = type === 'error' ? '#ff6b6b' : type === 'success' ? '#2cff6e' : '#00d1ff';
+      elements.miniLog.innerHTML = `
+        <div class="log-entry" style="border-left: 2px solid ${color}">
+          <span class="log-time">[${t}]</span> ${msg}
+        </div>
+      ` + elements.miniLog.innerHTML;
+    }
+
+    function addLogRow(entry) {
+      state.tradeCount += 1;
+      if (entry.result === 'WIN') state.winCount += 1;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${state.tradeCount}</td>
+        <td class="small">${entry.time}</td>
+        <td><strong>${entry.barrier}</strong></td>
+        <td>$${entry.stake.toFixed(2)}</td>
+        <td class="${entry.result === 'WIN' ? 'win' : 'loss'}">${entry.result}</td>
+        <td class="${entry.profit >= 0 ? 'win' : 'loss'}">$${entry.profit.toFixed(2)}</td>
+      `;
+      elements.logTableBody.prepend(tr);
+    }
+
+    function updateUI() {
+      elements.totalProfit.textContent = `$${state.totalProfit.toFixed(2)}`;
+      elements.tradeCount.textContent = state.tradeCount;
+      elements.sessionRuns.textContent = `${state.sessionRuns}/${state.maxSessionRuns}`;
+      elements.winRate.textContent = state.tradeCount > 0 ? `${Math.round((state.winCount / state.tradeCount) * 100)}%` : '0%';
+      elements.lowDigitTouches.textContent = state.lowDigitTouches;
+      elements.consecutiveRuns.textContent = state.consecutiveRuns;
+      document.getElementById('currentStake').value = `$${state.currentStake.toFixed(2)}`;
+      elements.liveSymbol.textContent = state.market;
+
+      // Update strategy status
+      if (state.sessionRuns >= state.maxSessionRuns) {
+        elements.strategyStatus.innerHTML = '🛑 Session Complete - 3 runs reached';
+        elements.strategyStatus.style.background = 'rgba(255,0,0,0.1)';
+        elements.strategyStatus.style.color = '#ff6b6b';
+      } else if (state.strategyReady) {
+        elements.strategyStatus.innerHTML = '✅ READY - Entry conditions met';
+        elements.strategyStatus.style.background = 'rgba(40,167,69,0.1)';
+        elements.strategyStatus.style.color = '#2cff6e';
+      } else {
+        elements.strategyStatus.innerHTML = '⏳ Waiting for low digit touches...';
+        elements.strategyStatus.style.background = 'rgba(255,193,7,0.1)';
+        elements.strategyStatus.style.color = '#ffc107';
+      }
+    }
+
+    function isLowDigit(digit) {
+      return digit >= 0 && digit <= 2;
+    }
+
+    function isHighDigit(digit) {
+      return digit >= 3 && digit <= 9;
+    }
+
+    function isOddDigit(digit) {
+      return digit % 2 === 1;
+    }
+
+    function computeFrequencies() {
+      const freq = new Array(10).fill(0);
+      state.ticks.forEach(d => {
+        if (typeof d === 'number') freq[d]++;
+      });
+      return freq;
+    }
+
+    function analyzeDigits() {
+      const freq = computeFrequencies();
+      const totalTicks = state.ticks.length;
+
+      // Find top digits (must be above 2)
+      let topDigit = null, secondDigit = null;
+      let topFreq = 0, secondFreq = 0;
+
+      for (let i = 3; i <= 9; i++) {
+        if (freq[i] > topFreq) {
+          secondDigit = topDigit;
+          secondFreq = topFreq;
+          topDigit = i;
+          topFreq = freq[i];
+        } else if (freq[i] > secondFreq) {
+          secondDigit = i;
+          secondFreq = freq[i];
+        }
+      }
+
+      // Check low digit percentages (must be below 10% each)
+      const lowDigitPercentages = [0,1,2].map(d => (freq[d] / totalTicks) * 100);
+      const lowDigitsValid = lowDigitPercentages.every(pct => pct < 10);
+
+      return {
+        topDigit,
+        topFreq,
+        secondDigit,
+        secondFreq,
+        lowDigitsValid,
+        frequencies: freq
+      };
+    }
+
+    function renderFreqBars() {
+      const analysis = analyzeDigits();
+      elements.freqBars.innerHTML = '';
+
+      for (let i = 0; i < 10; i++) {
+        const el = document.createElement('div');
+        let barClass = '';
+
+        if (isLowDigit(i)) {
+          barClass = 'low-digit';
+        } else if (i === analysis.topDigit) {
+          barClass = 'highlight';
+        } else if (i === analysis.secondDigit) {
+          barClass = 'secondary';
+        }
+
+        el.className = `freq-bar ${barClass}`;
+        el.innerHTML = `
+          <div style="font-weight:800;">${i}</div>
+          <div style="font-size:10px; margin-top:2px;">${analysis.frequencies[i]}</div>
+        `;
+        elements.freqBars.appendChild(el);
+      }
+    }
+
+    function checkStrategyConditions(currentDigit) {
+      const analysis = analyzeDigits();
+
+      // Reset conditions if we've hit max session runs
+      if (state.sessionRuns >= state.maxSessionRuns) {
+        state.strategyReady = false;
+        return false;
+      }
+
+      // Track low digit touches
+      if (isLowDigit(currentDigit)) {
+        state.lowDigitTouches++;
+        state.lastLowDigitTime = Date.now();
+        addMini(`📉 Low digit ${currentDigit} touched - Count: ${state.lowDigitTouches}`, 'info');
+      }
+
+      // Strategy conditions:
+      // 1. At least 2-3 low digit touches
+      // 2. Current digit must be high (above 2)
+      // 3. Top digit must be above 2 and preferably odd
+      // 4. Second digit must also be above 2
+      // 5. Low digits must each be below 10%
+
+      const hasLowTouches = state.lowDigitTouches >= 2;
+      const isCurrentHigh = isHighDigit(currentDigit);
+      const hasValidTopDigit = analysis.topDigit !== null && analysis.topDigit >= 3;
+      const hasValidSecondDigit = analysis.secondDigit !== null && analysis.secondDigit >= 3;
+      const topDigitIsOdd = analysis.topDigit !== null && isOddDigit(analysis.topDigit);
+
+      const conditionsMet = hasLowTouches &&
+                           isCurrentHigh &&
+                           hasValidTopDigit &&
+                           hasValidSecondDigit &&
+                           analysis.lowDigitsValid;
+
+      if (conditionsMet && !state.strategyReady) {
+        state.strategyReady = true;
+        addMini(`🎯 STRATEGY READY! Entry point: Digit ${analysis.topDigit} (${topDigitIsOdd ? 'Odd' : 'Even'})`, 'success');
+      } else if (!conditionsMet && state.strategyReady) {
+        state.strategyReady = false;
+        addMini('⏳ Strategy conditions no longer met', 'info');
+      }
+
+      return conditionsMet;
+    }
+
+    function startBot() {
+      state.token = document.getElementById('token').value.trim();
+      state.market = (document.getElementById('market').value || '1HZ100V').trim().toUpperCase();
+      state.window = parseInt(document.getElementById('window').value) || 30;
+      state.baseStake = parseFloat(document.getElementById('stake').value) || 0.35;
+      state.currentStake = state.baseStake;
+      state.ticks = [];
+      state.isRunning = true;
+      state.tradeCount = 0;
+      state.winCount = 0;
+      state.lossStreak = 0;
+      state.totalProfit = 0;
+      state.waitingResult = false;
+      state.lastBarrier = null;
+      // Reset strategy variables
+      state.lowDigitTouches = 0;
+      state.sessionRuns = 0;
+      state.strategyReady = false;
+      state.consecutiveRuns = 0;
+
+      elements.logTableBody.innerHTML = '';
+      elements.miniLog.innerHTML = '';
+
+      if (!state.token) {
+        addMini('❌ Please enter a valid API token', 'error');
+        return;
+      }
+
+      addMini('🚀 Starting Over 2 Strategy Bot...', 'success');
+      addMini('📊 Strategy: Wait for 2-3 low digit
