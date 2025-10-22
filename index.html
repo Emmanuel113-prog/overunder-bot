@@ -26,6 +26,7 @@
     .btn{width:100%;padding:14px;border-radius:var(--element-radius);border:none;cursor:pointer;font-weight:800;font-size:14px;transition:all 0.3s ease;}
     .btn-start{background:linear-gradient(135deg,var(--green),#1fa84a);color:white;}
     .btn-stop{background:linear-gradient(135deg,var(--red),#b72828);color:white;}
+    .btn:disabled{opacity:0.6;cursor:not-allowed;}
     .stat-big{font-size:22px;font-weight:900;color:var(--accent);}
     .small{font-size:11px;color:var(--muted);}
     .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0;}
@@ -151,7 +152,7 @@
 
       <div style="display:flex;gap:10px;margin-top:15px;">
         <button class="btn btn-start" id="startBtn">🚀 START BOT</button>
-        <button class="btn btn-stop" id="stopBtn">🛑 STOP BOT</button>
+        <button class="btn btn-stop" id="stopBtn" disabled>🛑 STOP BOT</button>
       </div>
 
       <label style="margin-top:15px;">📝 Strategy Log</label>
@@ -161,7 +162,7 @@
     <!-- Right Panel - Live Data -->
     <div class="panel">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;">
-        <div style="font-weight:800;font-size:16px;"> 📊 LIVE STRATEGY ANALYSIS</div>
+        <div style="font-weight:800;font-size:16px;">📊 LIVE STRATEGY ANALYSIS</div>
         <div style="font-size:12px;color:var(--muted)">Symbol: <span id="liveSymbol">1HZ100V</span></div>
       </div>
 
@@ -194,8 +195,8 @@
             <div style="font-weight:800;margin-bottom:8px;color:var(--accent);font-size:13px;">Digit Analysis</div>
             <div id="freqBars" class="freq-bar-container"></div>
             <div style="margin-top:8px;font-size:10px;color:var(--muted);text-align:center;">
-              <span style="color:#ff6b6b">■</span> Low Digits (0,1,2) •
-              <span style="color:#ffb347">■</span> Secondary •
+              <span style="color:#ff6b6b">■</span> Low Digits (0,1,2) • 
+              <span style="color:#ffb347">■</span> Secondary • 
               <span style="color:#28a745">■</span> Primary Entry
             </div>
           </div>
@@ -222,6 +223,9 @@
   </div>
 
   <script>
+    // Debug logging
+    console.log('Bot script loaded successfully');
+    
     let ws = null;
     const state = {
       token: '',
@@ -262,7 +266,9 @@
       freqBars: document.getElementById('freqBars'),
       strategyStatus: document.getElementById('strategyStatus'),
       logTableBody: document.querySelector('#logTable tbody'),
-      liveSymbol: document.getElementById('liveSymbol')
+      liveSymbol: document.getElementById('liveSymbol'),
+      startBtn: document.getElementById('startBtn'),
+      stopBtn: document.getElementById('stopBtn')
     };
 
     function addMini(msg, type = 'info') {
@@ -273,12 +279,13 @@
           <span class="log-time">[${t}]</span> ${msg}
         </div>
       ` + elements.miniLog.innerHTML;
+      console.log(`[BOT] ${msg}`);
     }
 
     function addLogRow(entry) {
       state.tradeCount += 1;
       if (entry.result === 'WIN') state.winCount += 1;
-
+      
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${state.tradeCount}</td>
@@ -300,7 +307,11 @@
       elements.consecutiveRuns.textContent = state.consecutiveRuns;
       document.getElementById('currentStake').value = `$${state.currentStake.toFixed(2)}`;
       elements.liveSymbol.textContent = state.market;
-
+      
+      // Update button states
+      elements.startBtn.disabled = state.isRunning;
+      elements.stopBtn.disabled = !state.isRunning;
+      
       // Update strategy status
       if (state.sessionRuns >= state.maxSessionRuns) {
         elements.strategyStatus.innerHTML = '🛑 Session Complete - 3 runs reached';
@@ -340,11 +351,11 @@
     function analyzeDigits() {
       const freq = computeFrequencies();
       const totalTicks = state.ticks.length;
-
+      
       // Find top digits (must be above 2)
       let topDigit = null, secondDigit = null;
       let topFreq = 0, secondFreq = 0;
-
+      
       for (let i = 3; i <= 9; i++) {
         if (freq[i] > topFreq) {
           secondDigit = topDigit;
@@ -356,11 +367,11 @@
           secondFreq = freq[i];
         }
       }
-
+      
       // Check low digit percentages (must be below 10% each)
       const lowDigitPercentages = [0,1,2].map(d => (freq[d] / totalTicks) * 100);
       const lowDigitsValid = lowDigitPercentages.every(pct => pct < 10);
-
+      
       return {
         topDigit,
         topFreq,
@@ -374,11 +385,11 @@
     function renderFreqBars() {
       const analysis = analyzeDigits();
       elements.freqBars.innerHTML = '';
-
+      
       for (let i = 0; i < 10; i++) {
         const el = document.createElement('div');
         let barClass = '';
-
+        
         if (isLowDigit(i)) {
           barClass = 'low-digit';
         } else if (i === analysis.topDigit) {
@@ -386,7 +397,7 @@
         } else if (i === analysis.secondDigit) {
           barClass = 'secondary';
         }
-
+        
         el.className = `freq-bar ${barClass}`;
         el.innerHTML = `
           <div style="font-weight:800;">${i}</div>
@@ -398,39 +409,39 @@
 
     function checkStrategyConditions(currentDigit) {
       const analysis = analyzeDigits();
-
+      
       // Reset conditions if we've hit max session runs
       if (state.sessionRuns >= state.maxSessionRuns) {
         state.strategyReady = false;
         return false;
       }
-
+      
       // Track low digit touches
       if (isLowDigit(currentDigit)) {
         state.lowDigitTouches++;
         state.lastLowDigitTime = Date.now();
         addMini(`📉 Low digit ${currentDigit} touched - Count: ${state.lowDigitTouches}`, 'info');
       }
-
+      
       // Strategy conditions:
       // 1. At least 2-3 low digit touches
       // 2. Current digit must be high (above 2)
       // 3. Top digit must be above 2 and preferably odd
       // 4. Second digit must also be above 2
       // 5. Low digits must each be below 10%
-
+      
       const hasLowTouches = state.lowDigitTouches >= 2;
       const isCurrentHigh = isHighDigit(currentDigit);
       const hasValidTopDigit = analysis.topDigit !== null && analysis.topDigit >= 3;
       const hasValidSecondDigit = analysis.secondDigit !== null && analysis.secondDigit >= 3;
       const topDigitIsOdd = analysis.topDigit !== null && isOddDigit(analysis.topDigit);
-
-      const conditionsMet = hasLowTouches &&
-                           isCurrentHigh &&
-                           hasValidTopDigit &&
-                           hasValidSecondDigit &&
+      
+      const conditionsMet = hasLowTouches && 
+                           isCurrentHigh && 
+                           hasValidTopDigit && 
+                           hasValidSecondDigit && 
                            analysis.lowDigitsValid;
-
+      
       if (conditionsMet && !state.strategyReady) {
         state.strategyReady = true;
         addMini(`🎯 STRATEGY READY! Entry point: Digit ${analysis.topDigit} (${topDigitIsOdd ? 'Odd' : 'Even'})`, 'success');
@@ -438,11 +449,13 @@
         state.strategyReady = false;
         addMini('⏳ Strategy conditions no longer met', 'info');
       }
-
+      
       return conditionsMet;
     }
 
     function startBot() {
+      console.log('Start button clicked');
+      
       state.token = document.getElementById('token').value.trim();
       state.market = (document.getElementById('market').value || '1HZ100V').trim().toUpperCase();
       state.window = parseInt(document.getElementById('window').value) || 30;
@@ -461,14 +474,281 @@
       state.sessionRuns = 0;
       state.strategyReady = false;
       state.consecutiveRuns = 0;
-
+      
       elements.logTableBody.innerHTML = '';
       elements.miniLog.innerHTML = '';
-
+      
       if (!state.token) {
         addMini('❌ Please enter a valid API token', 'error');
+        state.isRunning = false;
+        updateUI();
         return;
       }
-
+      
+      if (state.token.length < 10) {
+        addMini('❌ API token appears invalid', 'error');
+        state.isRunning = false;
+        updateUI();
+        return;
+      }
+      
       addMini('🚀 Starting Over 2 Strategy Bot...', 'success');
-      addMini('📊 Strategy: Wait for 2-3 low digit
+      addMini('📊 Strategy: Wait for 2-3 low digit touches, then enter on high odd digit', 'info');
+      connectWebsocket();
+      updateUI();
+    }
+
+    function stopBot() {
+      console.log('Stop button clicked');
+      state.isRunning = false;
+      if (ws) {
+        try {
+          ws.close();
+        } catch (e) {}
+      }
+      addMini('🛑 Bot stopped manually', 'error');
+      updateUI();
+    }
+
+    function connectWebsocket() {
+      console.log('Connecting to WebSocket...');
+      
+      try {
+        ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
+        
+        ws.onopen = () => {
+          console.log('WebSocket connected');
+          addMini('🔗 WebSocket connected, authorizing...', 'success');
+          ws.send(JSON.stringify({ authorize: state.token }));
+        };
+        
+        ws.onerror = (e) => {
+          console.error('WebSocket error:', e);
+          addMini('❌ WebSocket error occurred', 'error');
+        };
+        
+        ws.onclose = (ev) => {
+          console.log('WebSocket closed');
+          addMini('🔌 WebSocket connection closed', 'error');
+          state.waitingResult = false;
+          updateUI();
+          if (state.isRunning) {
+            setTimeout(() => {
+              addMini('🔄 Attempting to reconnect...', 'info');
+              connectWebsocket();
+            }, 3000);
+          }
+        };
+        
+        ws.onmessage = (msg) => {
+          try {
+            const data = JSON.parse(msg.data);
+            if (data.error) {
+              addMini(`❌ Error: ${data.error.message || JSON.stringify(data.error)}`, 'error');
+              if (data.error && data.error.code === 'AuthorizationRequired') stopBot();
+              return;
+            }
+            handleWsMessage(data);
+          } catch (err) {
+            console.error('Parse error:', err);
+          }
+        };
+      } catch (error) {
+        console.error('WebSocket connection failed:', error);
+        addMini('❌ Failed to connect to WebSocket', 'error');
+        state.isRunning = false;
+        updateUI();
+      }
+    }
+
+    function handleWsMessage(data) {
+      if (data.msg_type === 'authorize') {
+        addMini('✅ Authorization successful, subscribing to ticks...', 'success');
+        ws.send(JSON.stringify({ ticks: state.market, subscribe: 1 }));
+        return;
+      }
+      
+      if (data.msg_type === 'tick') {
+        const quote = data.tick && data.tick.quote;
+        if (quote === undefined) return;
+        const digit = parseInt(String(quote).slice(-1));
+        onNewTick(digit);
+        return;
+      }
+      
+      if (data.msg_type === 'buy') {
+        if (data.buy && data.buy.contract_id) {
+          state.contractId = data.buy.contract_id;
+          addMini(`📊 Trade placed - Contract ID: ${state.contractId}`, 'success');
+          ws.send(JSON.stringify({
+            proposal_open_contract: 1,
+            contract_id: state.contractId,
+            subscribe: 1
+          }));
+        } else {
+          addMini('❌ Trade placement failed', 'error');
+          state.waitingResult = false;
+          updateUI();
+        }
+        return;
+      }
+      
+      if (data.msg_type === 'proposal_open_contract') {
+        const open = data.proposal_open_contract;
+        if (!open) return;
+        if (open.is_sold) {
+          const profit = parseFloat(open.profit) || 0;
+          let entryBarrier = state.lastBarrier;
+          try {
+            if ((!entryBarrier || entryBarrier === null) && open.entry_tick) {
+              entryBarrier = parseInt(String(open.entry_tick).slice(-1));
+            }
+          } catch (e) {}
+          handleContractResult(profit, entryBarrier);
+        }
+        return;
+      }
+    }
+
+    function onNewTick(digit) {
+      if (!state.isRunning) return;
+      
+      // Add new digit to ticks array
+      state.ticks.push(digit);
+      
+      // Keep only the last 'window' ticks
+      if (state.ticks.length > state.window) {
+        state.ticks = state.ticks.slice(-state.window);
+      }
+      
+      // Update displays
+      elements.circleDigit.textContent = digit;
+      elements.currentDigit.textContent = digit;
+      
+      // Check strategy conditions
+      const strategyReady = checkStrategyConditions(digit);
+      
+      // Render frequency bars
+      renderFreqBars();
+      
+      // If strategy is ready and not waiting for result, place trade
+      if (strategyReady && !state.waitingResult && state.ticks.length >= state.window) {
+        placeTrade();
+      }
+      
+      updateUI();
+    }
+
+    function placeTrade() {
+      const analysis = analyzeDigits();
+      if (analysis.topDigit === null) return;
+      
+      // Use the top digit as entry point
+      const entryDigit = analysis.topDigit;
+      
+      state.lastBarrier = entryDigit;
+      state.waitingResult = true;
+      state.sessionRuns++;
+      state.consecutiveRuns++;
+      
+      addMini(`🎯 EXECUTING TRADE #${state.sessionRuns} - Entry: ${entryDigit} (${isOddDigit(entryDigit) ? 'Odd' : 'Even'}), Stake: $${state.currentStake.toFixed(2)}`, 'success');
+      
+      // Update barrier display
+      elements.barrierText.textContent = entryDigit;
+      
+      // Send buy request
+      ws.send(JSON.stringify({
+        buy: 1,
+        price: state.currentStake,
+        parameters: {
+          amount: state.currentStake,
+          basis: 'stake',
+          contract_type: 'DIGITMATCH',
+          currency: 'USD',
+          duration: 1,
+          duration_unit: 't',
+          symbol: state.market,
+          barrier: entryDigit.toString()
+        }
+      }));
+      
+      updateUI();
+    }
+
+    function handleContractResult(profit, barrier) {
+      state.waitingResult = false;
+      
+      const isWin = profit > 0;
+      const result = isWin ? 'WIN' : 'LOSS';
+      
+      // Update stats
+      state.totalProfit += profit;
+      
+      if (isWin) {
+        state.lossStreak = 0;
+        state.currentStake = state.baseStake; // Reset to base stake after win
+        addMini(`✅ TRADE #${state.sessionRuns} WON! Profit: $${profit.toFixed(2)}`, 'success');
+      } else {
+        state.lossStreak++;
+        // Martingale: double stake after loss
+        state.currentStake = state.currentStake * 2;
+        addMini(`❌ TRADE #${state.sessionRuns} LOST! Loss: $${Math.abs(profit).toFixed(2)}`, 'error');
+      }
+      
+      // Add to log
+      const logEntry = {
+        time: new Date().toLocaleTimeString(),
+        barrier: barrier || state.lastBarrier || '?',
+        prediction: 'Matches',
+        stake: state.currentStake / (isWin ? 1 : 2), // Show original stake
+        result: result,
+        profit: profit
+      };
+      
+      addLogRow(logEntry);
+      
+      // Check if we've reached max session runs
+      if (state.sessionRuns >= state.maxSessionRuns) {
+        addMini(`🎯 SESSION COMPLETE - ${state.maxSessionRuns} runs executed. Take 2-hour break or change market.`, 'success');
+        state.strategyReady = false;
+      }
+      
+      // Check stop conditions
+      checkStopConditions();
+      
+      updateUI();
+    }
+
+    function checkStopConditions() {
+      const stopOnProfit = document.getElementById('stopOnProfit').checked;
+      const profitLimit = parseFloat(document.getElementById('profitLimit').value) || 0;
+      const stopOnLoss = document.getElementById('stopOnLoss').checked;
+      const lossLimit = parseFloat(document.getElementById('lossLimit').value) || 0;
+      
+      if (stopOnProfit && state.totalProfit >= profitLimit) {
+        addMini(`🎉 Profit target reached: $${state.totalProfit.toFixed(2)} - Stopping bot`, 'success');
+        stopBot();
+        return;
+      }
+      
+      if (stopOnLoss && state.totalProfit <= -lossLimit) {
+        addMini(`💸 Loss limit reached: $${Math.abs(state.totalProfit).toFixed(2)} - Stopping bot`, 'error');
+        stopBot();
+        return;
+      }
+    }
+
+    // Event listeners
+    document.getElementById('startBtn').addEventListener('click', startBot);
+    document.getElementById('stopBtn').addEventListener('click', stopBot);
+
+    // Initialize UI
+    updateUI();
+    renderFreqBars();
+    addMini('💡 Over 2 Strategy: Wait for 2-3 touches on 0,1,2 then enter on high odd digit', 'info');
+    addMini('📊 Maximum 3 runs per session - Then take 2-hour break', 'info');
+    
+    console.log('Bot initialization complete');
+  </script>
+</body>
+</html>
