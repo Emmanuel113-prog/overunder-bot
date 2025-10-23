@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>NUCH BOT — Over 2 Strategy</title>
+  <title>NUCH BOT — Perfect Over 2 Strategy</title>
   <style>
     :root{
       --bg:#070812; --card:#0f1420; --muted:#9aa3b2; --accent:#00e0ff;
@@ -57,16 +57,15 @@
     .freq-bar.highlight{background:linear-gradient(135deg, var(--green), #1fa84a);color:#000;font-weight:800;}
     .freq-bar.secondary{background:linear-gradient(135deg, var(--yellow), #ffb347);color:#000;font-weight:800;}
     .freq-bar.low-digit{background:linear-gradient(135deg, #ff6b6b, #ff8e8e);color:#000;}
+    .freq-bar.odd-digit{border:2px solid #00e0ff;}
     .control-group{background:rgba(255,255,255,0.02);padding:12px;border-radius:var(--element-radius);margin:12px 0;}
     .switch{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;}
     .switch input[type="checkbox"]{width:16px;height:16px;}
     #miniLog{height:120px;overflow:auto;margin-top:10px;padding:12px;border-radius:var(--element-radius);background:rgba(255,255,255,0.02);font-size:12px;line-height:1.3;}
     .log-entry{margin-bottom:6px;padding:6px;border-radius:6px;background:rgba(255,255,255,0.02);}
     .log-time{color:var(--accent);font-weight:600;font-size:11px;}
-    .strategy-indicator{display:inline-block;padding:4px 8px;border-radius:4px;font-size:10px;font-weight:800;margin-left:6px;}
-    .ready{background:var(--green);color:white;}
-    .waiting{background:var(--yellow);color:black;}
-    .blocked{background:var(--red);color:white;}
+    .condition-meter{height:6px;background:rgba(255,255,255,0.1);border-radius:3px;margin-top:4px;overflow:hidden;}
+    .condition-fill{height:100%;background:linear-gradient(90deg, #ff6b6b, #ffc107, #2cff6e);transition:width 0.3s ease;}
 
     @media (min-width: 768px) {
       .container{flex-direction:row;padding:15px;}
@@ -76,15 +75,15 @@
 </head>
 <body>
   <div class="banner-wrap">
-    <div class="banner">⚡ NUCH BOT — OVER 2 STRATEGY • Advanced Entry Timing • 3-Run Maximum</div>
+    <div class="banner">⚡ PERFECT OVER 2 STRATEGY • Low Digit Touch → High Digit Entry • 3-Run Maximum</div>
   </div>
 
   <div class="container">
     <!-- Left Panel - Controls -->
     <div class="panel">
       <div class="panel-header">
-        <h1>🎯 OVER 2 STRATEGY BOT</h1>
-        <div class="subtitle">Advanced entry timing with 3-run maximum per session</div>
+        <h1>🎯 PERFECT OVER 2 STRATEGY</h1>
+        <div class="subtitle">Low digit touches → High digit entry → 3 runs maximum</div>
       </div>
 
       <div class="stats-grid">
@@ -115,14 +114,36 @@
           <input id="market" type="text" value="1HZ100V" />
         </div>
         <div>
-          <label>🔍 Window Size</label>
-          <input id="window" type="number" min="20" max="50" value="30" />
+          <label>🔍 Analysis Window</label>
+          <input id="window" type="number" min="25" max="50" value="30" />
         </div>
       </div>
 
-      <label>🎯 Strategy Status</label>
-      <div id="strategyStatus" style="padding:10px; border-radius:var(--element-radius); background:rgba(255,0,0,0.1); color:#ff6b6b; font-size:12px; font-weight:600;">
-        ⏳ Waiting for strategy conditions...
+      <label>🎯 Strategy Conditions</label>
+      <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:var(--element-radius); margin-top:8px;">
+        <div style="display:flex; justify-content:space-between; font-size:11px;">
+          <span>Low Digit Touches:</span>
+          <span id="lowTouchCount">0/3</span>
+        </div>
+        <div class="condition-meter">
+          <div class="condition-fill" id="lowTouchMeter" style="width:0%"></div>
+        </div>
+        
+        <div style="display:flex; justify-content:space-between; font-size:11px; margin-top:8px;">
+          <span>Low Digits Below 10%:</span>
+          <span id="lowDigitPercent">Checking...</span>
+        </div>
+        <div class="condition-meter">
+          <div class="condition-fill" id="lowPercentMeter" style="width:0%"></div>
+        </div>
+        
+        <div style="display:flex; justify-content:space-between; font-size:11px; margin-top:8px;">
+          <span>High Digit Ready:</span>
+          <span id="highDigitStatus">Waiting...</span>
+        </div>
+        <div class="condition-meter">
+          <div class="condition-fill" id="highDigitMeter" style="width:0%"></div>
+        </div>
       </div>
 
       <div class="grid2">
@@ -133,20 +154,6 @@
         <div>
           <label>📊 Current Stake</label>
           <input id="currentStake" type="text" readonly value="$0.35" />
-        </div>
-      </div>
-
-      <div class="control-group">
-        <label style="margin-top:0;">🛑 Auto Stop Conditions</label>
-        <div class="switch">
-          <input type="checkbox" id="stopOnProfit" checked />
-          <label style="margin:0">Profit at: $</label>
-          <input id="profitLimit" type="number" min="1.00" step="0.50" value="3.00" style="width:70px;padding:8px;" />
-        </div>
-        <div class="switch">
-          <input type="checkbox" id="stopOnLoss" checked />
-          <label style="margin:0">Loss at: -$</label>
-          <input id="lossLimit" type="number" min="1.00" step="0.50" value="5.00" style="width:70px;padding:8px;" />
         </div>
       </div>
 
@@ -162,7 +169,7 @@
     <!-- Right Panel - Live Data -->
     <div class="panel">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;">
-        <div style="font-weight:800;font-size:16px;">📊 LIVE STRATEGY ANALYSIS</div>
+        <div style="font-weight:800;font-size:16px;">📊 LIVE STRATEGY EXECUTION</div>
         <div style="font-size:12px;color:var(--muted)">Symbol: <span id="liveSymbol">1HZ100V</span></div>
       </div>
 
@@ -175,7 +182,10 @@
             Current: <strong id="currentDigit">—</strong>
           </div>
           <div style="margin-top:4px;font-size:14px;font-weight:800;color:var(--accent)">
-            Entry: <strong id="barrierText">—</strong>
+            Next Entry: <strong id="barrierText">—</strong>
+          </div>
+          <div style="margin-top:4px;font-size:11px;color:var(--muted)" id="entryType">
+            Waiting for setup...
           </div>
         </div>
 
@@ -192,12 +202,13 @@
           </div>
 
           <div>
-            <div style="font-weight:800;margin-bottom:8px;color:var(--accent);font-size:13px;">Digit Analysis</div>
+            <div style="font-weight:800;margin-bottom:8px;color:var(--accent);font-size:13px;">Digit Frequency Analysis</div>
             <div id="freqBars" class="freq-bar-container"></div>
             <div style="margin-top:8px;font-size:10px;color:var(--muted);text-align:center;">
-              <span style="color:#ff6b6b">■</span> Low Digits (0,1,2) • 
-              <span style="color:#ffb347">■</span> Secondary • 
-              <span style="color:#28a745">■</span> Primary Entry
+              <span style="color:#ff6b6b">■</span> Low (0,1,2) • 
+              <span style="color:#ffb347">■</span> Secondary High • 
+              <span style="color:#28a745">■</span> Primary Entry •
+              <span style="color:#00e0ff">□</span> Odd Number
             </div>
           </div>
         </div>
@@ -211,7 +222,7 @@
               <th>#</th>
               <th>TIME</th>
               <th>ENTRY</th>
-              <th>STAKE</th>
+              <th>TYPE</th>
               <th>RESULT</th>
               <th>P/L</th>
             </tr>
@@ -223,9 +234,6 @@
   </div>
 
   <script>
-    // Debug logging
-    console.log('Bot script loaded successfully');
-    
     let ws = null;
     const state = {
       token: '',
@@ -242,13 +250,16 @@
       waitingResult: false,
       contractId: null,
       lastBarrier: null,
-      // Over 2 Strategy Variables
+      // Perfect Over 2 Strategy Variables
       lowDigitTouches: 0,
+      requiredLowTouches: 3,
       sessionRuns: 0,
       maxSessionRuns: 3,
       lastLowDigitTime: 0,
       strategyReady: false,
-      consecutiveRuns: 0
+      consecutiveRuns: 0,
+      lastAction: 'WAITING',
+      currentPhase: 'ACCUMULATING_LOW_TOUCHES'
     };
 
     // DOM Elements
@@ -261,10 +272,16 @@
       circleDigit: document.getElementById('circleDigit'),
       currentDigit: document.getElementById('currentDigit'),
       barrierText: document.getElementById('barrierText'),
+      entryType: document.getElementById('entryType'),
       lowDigitTouches: document.getElementById('lowDigitTouches'),
+      lowTouchCount: document.getElementById('lowTouchCount'),
+      lowTouchMeter: document.getElementById('lowTouchMeter'),
+      lowDigitPercent: document.getElementById('lowDigitPercent'),
+      lowPercentMeter: document.getElementById('lowPercentMeter'),
+      highDigitStatus: document.getElementById('highDigitStatus'),
+      highDigitMeter: document.getElementById('highDigitMeter'),
       consecutiveRuns: document.getElementById('consecutiveRuns'),
       freqBars: document.getElementById('freqBars'),
-      strategyStatus: document.getElementById('strategyStatus'),
       logTableBody: document.querySelector('#logTable tbody'),
       liveSymbol: document.getElementById('liveSymbol'),
       startBtn: document.getElementById('startBtn'),
@@ -279,7 +296,6 @@
           <span class="log-time">[${t}]</span> ${msg}
         </div>
       ` + elements.miniLog.innerHTML;
-      console.log(`[BOT] ${msg}`);
     }
 
     function addLogRow(entry) {
@@ -291,7 +307,7 @@
         <td>${state.tradeCount}</td>
         <td class="small">${entry.time}</td>
         <td><strong>${entry.barrier}</strong></td>
-        <td>$${entry.stake.toFixed(2)}</td>
+        <td>${entry.type}</td>
         <td class="${entry.result === 'WIN' ? 'win' : 'loss'}">${entry.result}</td>
         <td class="${entry.profit >= 0 ? 'win' : 'loss'}">$${entry.profit.toFixed(2)}</td>
       `;
@@ -304,6 +320,8 @@
       elements.sessionRuns.textContent = `${state.sessionRuns}/${state.maxSessionRuns}`;
       elements.winRate.textContent = state.tradeCount > 0 ? `${Math.round((state.winCount / state.tradeCount) * 100)}%` : '0%';
       elements.lowDigitTouches.textContent = state.lowDigitTouches;
+      elements.lowTouchCount.textContent = `${state.lowDigitTouches}/${state.requiredLowTouches}`;
+      elements.lowTouchMeter.style.width = `${(state.lowDigitTouches / state.requiredLowTouches) * 100}%`;
       elements.consecutiveRuns.textContent = state.consecutiveRuns;
       document.getElementById('currentStake').value = `$${state.currentStake.toFixed(2)}`;
       elements.liveSymbol.textContent = state.market;
@@ -311,21 +329,6 @@
       // Update button states
       elements.startBtn.disabled = state.isRunning;
       elements.stopBtn.disabled = !state.isRunning;
-      
-      // Update strategy status
-      if (state.sessionRuns >= state.maxSessionRuns) {
-        elements.strategyStatus.innerHTML = '🛑 Session Complete - 3 runs reached';
-        elements.strategyStatus.style.background = 'rgba(255,0,0,0.1)';
-        elements.strategyStatus.style.color = '#ff6b6b';
-      } else if (state.strategyReady) {
-        elements.strategyStatus.innerHTML = '✅ READY - Entry conditions met';
-        elements.strategyStatus.style.background = 'rgba(40,167,69,0.1)';
-        elements.strategyStatus.style.color = '#2cff6e';
-      } else {
-        elements.strategyStatus.innerHTML = '⏳ Waiting for low digit touches...';
-        elements.strategyStatus.style.background = 'rgba(255,193,7,0.1)';
-        elements.strategyStatus.style.color = '#ffc107';
-      }
     }
 
     function isLowDigit(digit) {
@@ -348,11 +351,16 @@
       return freq;
     }
 
-    function analyzeDigits() {
+    function analyzePerfectOver2Strategy() {
       const freq = computeFrequencies();
       const totalTicks = state.ticks.length;
       
-      // Find top digits (must be above 2)
+      // Rule 1: Low digits (0,1,2) must each be below 10%
+      const lowDigitPercentages = [0,1,2].map(d => (freq[d] / totalTicks) * 100);
+      const lowDigitsValid = lowDigitPercentages.every(pct => pct < 10);
+      const lowDigitScore = Math.max(0, (10 - Math.max(...lowDigitPercentages)) / 10 * 100);
+      
+      // Rule 2: Find top high digits (3-9 only)
       let topDigit = null, secondDigit = null;
       let topFreq = 0, secondFreq = 0;
       
@@ -368,27 +376,47 @@
         }
       }
       
-      // Check low digit percentages (must be below 10% each)
-      const lowDigitPercentages = [0,1,2].map(d => (freq[d] / totalTicks) * 100);
-      const lowDigitsValid = lowDigitPercentages.every(pct => pct < 10);
+      // Rule 3: Prefer odd numbers for entry
+      const topDigitIsOdd = topDigit !== null && isOddDigit(topDigit);
+      const secondDigitIsHigh = secondDigit !== null && secondDigit >= 3;
+      
+      const highDigitScore = (topDigit !== null && secondDigitIsHigh) ? 100 : 0;
+      const oddPreferenceScore = topDigitIsOdd ? 100 : 70;
+      
+      // Update UI meters
+      elements.lowDigitPercent.textContent = lowDigitsValid ? 'VALID' : `${Math.max(...lowDigitPercentages).toFixed(1)}%`;
+      elements.lowPercentMeter.style.width = `${lowDigitScore}%`;
+      elements.lowPercentMeter.style.background = lowDigitsValid ? 
+        'linear-gradient(90deg, #2cff6e, #1fa84a)' : 
+        'linear-gradient(90deg, #ff6b6b, #ff8e8e)';
+      
+      elements.highDigitStatus.textContent = topDigitIsOdd ? `ODD ${topDigit}` : (topDigit !== null ? `EVEN ${topDigit}` : 'NONE');
+      elements.highDigitMeter.style.width = `${highDigitScore}%`;
+      elements.highDigitMeter.style.background = topDigitIsOdd ? 
+        'linear-gradient(90deg, #2cff6e, #1fa84a)' : 
+        'linear-gradient(90deg, #ffc107, #ffb347)';
       
       return {
         topDigit,
         topFreq,
+        topDigitIsOdd,
         secondDigit,
-        secondFreq,
+        secondDigitIsHigh,
         lowDigitsValid,
-        frequencies: freq
+        lowDigitPercentages,
+        frequencies: freq,
+        strategyScore: (lowDigitScore * 0.4) + (highDigitScore * 0.4) + (oddPreferenceScore * 0.2)
       };
     }
 
     function renderFreqBars() {
-      const analysis = analyzeDigits();
+      const analysis = analyzePerfectOver2Strategy();
       elements.freqBars.innerHTML = '';
       
       for (let i = 0; i < 10; i++) {
         const el = document.createElement('div');
         let barClass = '';
+        let isOdd = isOddDigit(i);
         
         if (isLowDigit(i)) {
           barClass = 'low-digit';
@@ -398,64 +426,75 @@
           barClass = 'secondary';
         }
         
+        if (isOdd && isHighDigit(i)) {
+          barClass += ' odd-digit';
+        }
+        
         el.className = `freq-bar ${barClass}`;
+        const percentage = ((analysis.frequencies[i] / state.ticks.length) * 100).toFixed(1);
         el.innerHTML = `
           <div style="font-weight:800;">${i}</div>
-          <div style="font-size:10px; margin-top:2px;">${analysis.frequencies[i]}</div>
+          <div style="font-size:9px; margin-top:2px;">${analysis.frequencies[i]} (${percentage}%)</div>
         `;
         elements.freqBars.appendChild(el);
       }
     }
 
-    function checkStrategyConditions(currentDigit) {
-      const analysis = analyzeDigits();
+    function checkPerfectOver2Conditions(currentDigit) {
+      const analysis = analyzePerfectOver2Strategy();
       
-      // Reset conditions if we've hit max session runs
+      // Stop if we've reached maximum session runs
       if (state.sessionRuns >= state.maxSessionRuns) {
         state.strategyReady = false;
+        state.currentPhase = 'SESSION_COMPLETE';
+        elements.entryType.textContent = 'Session Complete - Take 2hr Break';
         return false;
       }
       
-      // Track low digit touches
+      // Phase 1: Accumulate low digit touches
       if (isLowDigit(currentDigit)) {
-        state.lowDigitTouches++;
+        state.lowDigitTouches = Math.min(state.lowDigitTouches + 1, state.requiredLowTouches);
         state.lastLowDigitTime = Date.now();
-        addMini(`📉 Low digit ${currentDigit} touched - Count: ${state.lowDigitTouches}`, 'info');
+        state.currentPhase = 'ACCUMULATING_LOW_TOUCHES';
+        elements.entryType.textContent = `Low Digit Touch: ${state.lowDigitTouches}/${state.requiredLowTouches}`;
+        
+        if (state.lowDigitTouches === 1) {
+          addMini(`📉 Low digit ${currentDigit} touched - Starting accumulation phase`, 'info');
+        } else {
+          addMini(`📉 Low digit ${currentDigit} touched - Count: ${state.lowDigitTouches}/${state.requiredLowTouches}`, 'info');
+        }
       }
       
-      // Strategy conditions:
-      // 1. At least 2-3 low digit touches
-      // 2. Current digit must be high (above 2)
-      // 3. Top digit must be above 2 and preferably odd
-      // 4. Second digit must also be above 2
-      // 5. Low digits must each be below 10%
-      
-      const hasLowTouches = state.lowDigitTouches >= 2;
+      // Phase 2: Check if we can enter when high digit appears
+      const hasEnoughLowTouches = state.lowDigitTouches >= 2; // 2-3 touches as specified
       const isCurrentHigh = isHighDigit(currentDigit);
-      const hasValidTopDigit = analysis.topDigit !== null && analysis.topDigit >= 3;
-      const hasValidSecondDigit = analysis.secondDigit !== null && analysis.secondDigit >= 3;
-      const topDigitIsOdd = analysis.topDigit !== null && isOddDigit(analysis.topDigit);
+      const strategyConditionsMet = analysis.lowDigitsValid && 
+                                   analysis.topDigit !== null && 
+                                   analysis.secondDigitIsHigh &&
+                                   analysis.strategyScore >= 70;
       
-      const conditionsMet = hasLowTouches && 
-                           isCurrentHigh && 
-                           hasValidTopDigit && 
-                           hasValidSecondDigit && 
-                           analysis.lowDigitsValid;
+      const readyToEnter = hasEnoughLowTouches && isCurrentHigh && strategyConditionsMet;
       
-      if (conditionsMet && !state.strategyReady) {
+      if (readyToEnter && !state.strategyReady) {
         state.strategyReady = true;
-        addMini(`🎯 STRATEGY READY! Entry point: Digit ${analysis.topDigit} (${topDigitIsOdd ? 'Odd' : 'Even'})`, 'success');
-      } else if (!conditionsMet && state.strategyReady) {
+        state.currentPhase = 'READY_TO_ENTER';
+        elements.entryType.textContent = `READY: Enter on ${analysis.topDigit} (${analysis.topDigitIsOdd ? 'Odd' : 'Even'})`;
+        addMini(`🎯 PERFECT ENTRY READY! Low touches: ${state.lowDigitTouches}, Entry: ${analysis.topDigit} (${analysis.topDigitIsOdd ? 'Preferred Odd' : 'Even'})`, 'success');
+      } else if (!readyToEnter && state.strategyReady) {
         state.strategyReady = false;
-        addMini('⏳ Strategy conditions no longer met', 'info');
+        state.currentPhase = 'ACCUMULATING_LOW_TOUCHES';
+        elements.entryType.textContent = `Waiting for low touches: ${state.lowDigitTouches}/${state.requiredLowTouches}`;
       }
       
-      return conditionsMet;
+      // Update barrier display
+      if (analysis.topDigit !== null) {
+        elements.barrierText.textContent = `${analysis.topDigit} (${analysis.topDigitIsOdd ? 'Odd' : 'Even'})`;
+      }
+      
+      return readyToEnter;
     }
 
     function startBot() {
-      console.log('Start button clicked');
-      
       state.token = document.getElementById('token').value.trim();
       state.market = (document.getElementById('market').value || '1HZ100V').trim().toUpperCase();
       state.window = parseInt(document.getElementById('window').value) || 30;
@@ -474,6 +513,7 @@
       state.sessionRuns = 0;
       state.strategyReady = false;
       state.consecutiveRuns = 0;
+      state.currentPhase = 'ACCUMULATING_LOW_TOUCHES';
       
       elements.logTableBody.innerHTML = '';
       elements.miniLog.innerHTML = '';
@@ -485,21 +525,14 @@
         return;
       }
       
-      if (state.token.length < 10) {
-        addMini('❌ API token appears invalid', 'error');
-        state.isRunning = false;
-        updateUI();
-        return;
-      }
-      
-      addMini('🚀 Starting Over 2 Strategy Bot...', 'success');
-      addMini('📊 Strategy: Wait for 2-3 low digit touches, then enter on high odd digit', 'info');
+      addMini('🚀 Starting PERFECT OVER 2 Strategy Bot...', 'success');
+      addMini('📊 STRATEGY: 2-3 low digit touches → High digit entry → 3 runs max → 2hr break', 'info');
+      addMini('🎯 CONDITIONS: Low digits <10% each, High entry digit, Preferably odd', 'info');
       connectWebsocket();
       updateUI();
     }
 
     function stopBot() {
-      console.log('Stop button clicked');
       state.isRunning = false;
       if (ws) {
         try {
@@ -511,24 +544,19 @@
     }
 
     function connectWebsocket() {
-      console.log('Connecting to WebSocket...');
-      
       try {
         ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
         
         ws.onopen = () => {
-          console.log('WebSocket connected');
           addMini('🔗 WebSocket connected, authorizing...', 'success');
           ws.send(JSON.stringify({ authorize: state.token }));
         };
         
         ws.onerror = (e) => {
-          console.error('WebSocket error:', e);
           addMini('❌ WebSocket error occurred', 'error');
         };
         
         ws.onclose = (ev) => {
-          console.log('WebSocket closed');
           addMini('🔌 WebSocket connection closed', 'error');
           state.waitingResult = false;
           updateUI();
@@ -554,7 +582,6 @@
           }
         };
       } catch (error) {
-        console.error('WebSocket connection failed:', error);
         addMini('❌ Failed to connect to WebSocket', 'error');
         state.isRunning = false;
         updateUI();
@@ -625,25 +652,25 @@
       elements.circleDigit.textContent = digit;
       elements.currentDigit.textContent = digit;
       
-      // Check strategy conditions
-      const strategyReady = checkStrategyConditions(digit);
+      // Check Perfect Over 2 Strategy conditions
+      const strategyReady = checkPerfectOver2Conditions(digit);
       
       // Render frequency bars
       renderFreqBars();
       
       // If strategy is ready and not waiting for result, place trade
       if (strategyReady && !state.waitingResult && state.ticks.length >= state.window) {
-        placeTrade();
+        executePerfectTrade();
       }
       
       updateUI();
     }
 
-    function placeTrade() {
-      const analysis = analyzeDigits();
+    function executePerfectTrade() {
+      const analysis = analyzePerfectOver2Strategy();
       if (analysis.topDigit === null) return;
       
-      // Use the top digit as entry point
+      // Use the top high digit as entry point
       const entryDigit = analysis.topDigit;
       
       state.lastBarrier = entryDigit;
@@ -651,10 +678,13 @@
       state.sessionRuns++;
       state.consecutiveRuns++;
       
-      addMini(`🎯 EXECUTING TRADE #${state.sessionRuns} - Entry: ${entryDigit} (${isOddDigit(entryDigit) ? 'Odd' : 'Even'}), Stake: $${state.currentStake.toFixed(2)}`, 'success');
+      const tradeType = analysis.topDigitIsOdd ? 'PREFERRED ODD' : 'EVEN';
+      addMini(`🎯 EXECUTING PERFECT TRADE #${state.sessionRuns} - Entry: ${entryDigit} (${tradeType}), Stake: $${state.currentStake.toFixed(2)}`, 'success');
+      addMini(`📊 Conditions: ${state.lowDigitTouches} low touches, Low digits <10%, Second high: ${analysis.secondDigit}`, 'info');
       
       // Update barrier display
       elements.barrierText.textContent = entryDigit;
+      elements.entryType.textContent = `Executing... ${entryDigit} (${tradeType})`;
       
       // Send buy request
       ws.send(JSON.stringify({
@@ -672,6 +702,10 @@
         }
       }));
       
+      // Reset low touches for next setup
+      state.lowDigitTouches = 0;
+      state.strategyReady = false;
+      
       updateUI();
     }
 
@@ -686,21 +720,21 @@
       
       if (isWin) {
         state.lossStreak = 0;
-        state.currentStake = state.baseStake; // Reset to base stake after win
-        addMini(`✅ TRADE #${state.sessionRuns} WON! Profit: $${profit.toFixed(2)}`, 'success');
+        state.currentStake = state.baseStake;
+        addMini(`✅ PERFECT TRADE #${state.sessionRuns} WON! Profit: $${profit.toFixed(2)}`, 'success');
       } else {
         state.lossStreak++;
-        // Martingale: double stake after loss
         state.currentStake = state.currentStake * 2;
-        addMini(`❌ TRADE #${state.sessionRuns} LOST! Loss: $${Math.abs(profit).toFixed(2)}`, 'error');
+        addMini(`❌ PERFECT TRADE #${state.sessionRuns} LOST! Loss: $${Math.abs(profit).toFixed(2)}`, 'error');
       }
       
       // Add to log
+      const analysis = analyzePerfectOver2Strategy();
       const logEntry = {
         time: new Date().toLocaleTimeString(),
         barrier: barrier || state.lastBarrier || '?',
-        prediction: 'Matches',
-        stake: state.currentStake / (isWin ? 1 : 2), // Show original stake
+        type: analysis.topDigitIsOdd ? 'Odd' : 'Even',
+        stake: state.currentStake / (isWin ? 1 : 2),
         result: result,
         profit: profit
       };
@@ -709,33 +743,17 @@
       
       // Check if we've reached max session runs
       if (state.sessionRuns >= state.maxSessionRuns) {
-        addMini(`🎯 SESSION COMPLETE - ${state.maxSessionRuns} runs executed. Take 2-hour break or change market.`, 'success');
-        state.strategyReady = false;
+        addMini(`🎯 PERFECT SESSION COMPLETE - ${state.maxSessionRuns} runs executed!`, 'success');
+        addMini('⏰ STRATEGY: Algorithm likely to change - Take 2-hour break or change market', 'info');
+        state.currentPhase = 'SESSION_COMPLETE';
+        elements.entryType.textContent = 'Session Complete - Take 2hr Break';
+        stopBot();
+      } else {
+        state.currentPhase = 'ACCUMULATING_LOW_TOUCHES';
+        elements.entryType.textContent = 'Waiting for next setup...';
       }
-      
-      // Check stop conditions
-      checkStopConditions();
       
       updateUI();
-    }
-
-    function checkStopConditions() {
-      const stopOnProfit = document.getElementById('stopOnProfit').checked;
-      const profitLimit = parseFloat(document.getElementById('profitLimit').value) || 0;
-      const stopOnLoss = document.getElementById('stopOnLoss').checked;
-      const lossLimit = parseFloat(document.getElementById('lossLimit').value) || 0;
-      
-      if (stopOnProfit && state.totalProfit >= profitLimit) {
-        addMini(`🎉 Profit target reached: $${state.totalProfit.toFixed(2)} - Stopping bot`, 'success');
-        stopBot();
-        return;
-      }
-      
-      if (stopOnLoss && state.totalProfit <= -lossLimit) {
-        addMini(`💸 Loss limit reached: $${Math.abs(state.totalProfit).toFixed(2)} - Stopping bot`, 'error');
-        stopBot();
-        return;
-      }
     }
 
     // Event listeners
@@ -745,10 +763,8 @@
     // Initialize UI
     updateUI();
     renderFreqBars();
-    addMini('💡 Over 2 Strategy: Wait for 2-3 touches on 0,1,2 then enter on high odd digit', 'info');
-    addMini('📊 Maximum 3 runs per session - Then take 2-hour break', 'info');
-    
-    console.log('Bot initialization complete');
+    addMini('💡 PERFECT OVER 2 STRATEGY ACTIVATED', 'info');
+    addMini('📊 Wait for 2-3 touches on 0,1,2 → Enter on high digit (prefer odd) → 3 runs max', 'info');
   </script>
 </body>
 </html>
