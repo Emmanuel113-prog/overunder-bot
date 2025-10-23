@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>NUCH BOT — Perfect Over 2 Strategy</title>
+  <title>NUCH BOT — Perfect Over/Under Strategy</title>
   <style>
     :root{
       --bg:#070812; --card:#0f1420; --muted:#9aa3b2; --accent:#00e0ff;
@@ -75,15 +75,15 @@
 </head>
 <body>
   <div class="banner-wrap">
-    <div class="banner">⚡ PERFECT OVER 2 STRATEGY • Low Digit Touch → High Digit Entry • 3-Run Maximum</div>
+    <div class="banner">⚡ PERFECT OVER/UNDER STRATEGY • Low Digit Touch → Over 2 Entry • 3-Run Maximum</div>
   </div>
 
   <div class="container">
     <!-- Left Panel - Controls -->
     <div class="panel">
       <div class="panel-header">
-        <h1>🎯 PERFECT OVER 2 STRATEGY</h1>
-        <div class="subtitle">Low digit touches → High digit entry → 3 runs maximum</div>
+        <h1>🎯 PERFECT OVER/UNDER STRATEGY</h1>
+        <div class="subtitle">Low digit touches → Over 2 entry → 3 runs maximum</div>
       </div>
 
       <div class="stats-grid">
@@ -118,6 +118,12 @@
           <input id="window" type="number" min="25" max="50" value="30" />
         </div>
       </div>
+
+      <label>🎯 Contract Type</label>
+      <select id="contractType">
+        <option value="DIGITOVER" selected>📈 Over 2</option>
+        <option value="DIGITUNDER">📉 Under 2</option>
+      </select>
 
       <label>🎯 Strategy Conditions</label>
       <div style="background:rgba(255,255,255,0.02); padding:12px; border-radius:var(--element-radius); margin-top:8px;">
@@ -214,14 +220,14 @@
         </div>
       </div>
 
-      <div style="font-weight:800;margin-bottom:8px;font-size:14px;">🎯 TRADE EXECUTIONS</div>
+      <div style="font-weight:800;margin-bottom:8px;font-size:14px;">🎯 OVER/UNDER EXECUTIONS</div>
       <div class="log-wrap">
         <table id="logTable">
           <thead>
             <tr>
               <th>#</th>
               <th>TIME</th>
-              <th>ENTRY</th>
+              <th>CONTRACT</th>
               <th>TYPE</th>
               <th>RESULT</th>
               <th>P/L</th>
@@ -250,7 +256,7 @@
       waitingResult: false,
       contractId: null,
       lastBarrier: null,
-      // Perfect Over 2 Strategy Variables
+      // Perfect Over/Under Strategy Variables
       lowDigitTouches: 0,
       requiredLowTouches: 3,
       sessionRuns: 0,
@@ -306,7 +312,7 @@
       tr.innerHTML = `
         <td>${state.tradeCount}</td>
         <td class="small">${entry.time}</td>
-        <td><strong>${entry.barrier}</strong></td>
+        <td><strong>${entry.contract}</strong></td>
         <td>${entry.type}</td>
         <td class="${entry.result === 'WIN' ? 'win' : 'loss'}">${entry.result}</td>
         <td class="${entry.profit >= 0 ? 'win' : 'loss'}">$${entry.profit.toFixed(2)}</td>
@@ -351,7 +357,7 @@
       return freq;
     }
 
-    function analyzePerfectOver2Strategy() {
+    function analyzePerfectOverUnderStrategy() {
       const freq = computeFrequencies();
       const totalTicks = state.ticks.length;
       
@@ -410,7 +416,7 @@
     }
 
     function renderFreqBars() {
-      const analysis = analyzePerfectOver2Strategy();
+      const analysis = analyzePerfectOverUnderStrategy();
       elements.freqBars.innerHTML = '';
       
       for (let i = 0; i < 10; i++) {
@@ -440,8 +446,8 @@
       }
     }
 
-    function checkPerfectOver2Conditions(currentDigit) {
-      const analysis = analyzePerfectOver2Strategy();
+    function checkPerfectOverUnderConditions(currentDigit) {
+      const analysis = analyzePerfectOverUnderStrategy();
       
       // Stop if we've reached maximum session runs
       if (state.sessionRuns >= state.maxSessionRuns) {
@@ -478,17 +484,22 @@
       if (readyToEnter && !state.strategyReady) {
         state.strategyReady = true;
         state.currentPhase = 'READY_TO_ENTER';
-        elements.entryType.textContent = `READY: Enter on ${analysis.topDigit} (${analysis.topDigitIsOdd ? 'Odd' : 'Even'})`;
-        addMini(`🎯 PERFECT ENTRY READY! Low touches: ${state.lowDigitTouches}, Entry: ${analysis.topDigit} (${analysis.topDigitIsOdd ? 'Preferred Odd' : 'Even'})`, 'success');
+        const contractType = document.getElementById('contractType').value;
+        const contractName = contractType === 'DIGITOVER' ? 'Over 2' : 'Under 2';
+        elements.entryType.textContent = `READY: ${contractName} on high digit`;
+        addMini(`🎯 PERFECT ENTRY READY! Low touches: ${state.lowDigitTouches}, ${contractName} trade ready`, 'success');
       } else if (!readyToEnter && state.strategyReady) {
         state.strategyReady = false;
         state.currentPhase = 'ACCUMULATING_LOW_TOUCHES';
         elements.entryType.textContent = `Waiting for low touches: ${state.lowDigitTouches}/${state.requiredLowTouches}`;
       }
       
-      // Update barrier display
-      if (analysis.topDigit !== null) {
-        elements.barrierText.textContent = `${analysis.topDigit} (${analysis.topDigitIsOdd ? 'Odd' : 'Even'})`;
+      // Update barrier display for Over/Under
+      const contractType = document.getElementById('contractType').value;
+      if (contractType === 'DIGITOVER') {
+        elements.barrierText.textContent = 'Over 2';
+      } else {
+        elements.barrierText.textContent = 'Under 2';
       }
       
       return readyToEnter;
@@ -525,9 +536,9 @@
         return;
       }
       
-      addMini('🚀 Starting PERFECT OVER 2 Strategy Bot...', 'success');
-      addMini('📊 STRATEGY: 2-3 low digit touches → High digit entry → 3 runs max → 2hr break', 'info');
-      addMini('🎯 CONDITIONS: Low digits <10% each, High entry digit, Preferably odd', 'info');
+      addMini('🚀 Starting PERFECT OVER/UNDER Strategy Bot...', 'success');
+      addMini('📊 STRATEGY: 2-3 low digit touches → Over/Under entry → 3 runs max → 2hr break', 'info');
+      addMini('🎯 CONDITIONS: Low digits <10% each, High digit frequency, Preferably odd', 'info');
       connectWebsocket();
       updateUI();
     }
@@ -625,13 +636,7 @@
         if (!open) return;
         if (open.is_sold) {
           const profit = parseFloat(open.profit) || 0;
-          let entryBarrier = state.lastBarrier;
-          try {
-            if ((!entryBarrier || entryBarrier === null) && open.entry_tick) {
-              entryBarrier = parseInt(String(open.entry_tick).slice(-1));
-            }
-          } catch (e) {}
-          handleContractResult(profit, entryBarrier);
+          handleContractResult(profit);
         }
         return;
       }
@@ -652,53 +657,52 @@
       elements.circleDigit.textContent = digit;
       elements.currentDigit.textContent = digit;
       
-      // Check Perfect Over 2 Strategy conditions
-      const strategyReady = checkPerfectOver2Conditions(digit);
+      // Check Perfect Over/Under Strategy conditions
+      const strategyReady = checkPerfectOverUnderConditions(digit);
       
       // Render frequency bars
       renderFreqBars();
       
       // If strategy is ready and not waiting for result, place trade
       if (strategyReady && !state.waitingResult && state.ticks.length >= state.window) {
-        executePerfectTrade();
+        executePerfectOverUnderTrade();
       }
       
       updateUI();
     }
 
-    function executePerfectTrade() {
-      const analysis = analyzePerfectOver2Strategy();
-      if (analysis.topDigit === null) return;
+    function executePerfectOverUnderTrade() {
+      const analysis = analyzePerfectOverUnderStrategy();
       
-      // Use the top high digit as entry point
-      const entryDigit = analysis.topDigit;
-      
-      state.lastBarrier = entryDigit;
+      state.lastBarrier = '2'; // Over/Under uses barrier 2
       state.waitingResult = true;
       state.sessionRuns++;
       state.consecutiveRuns++;
       
-      const tradeType = analysis.topDigitIsOdd ? 'PREFERRED ODD' : 'EVEN';
-      addMini(`🎯 EXECUTING PERFECT TRADE #${state.sessionRuns} - Entry: ${entryDigit} (${tradeType}), Stake: $${state.currentStake.toFixed(2)}`, 'success');
-      addMini(`📊 Conditions: ${state.lowDigitTouches} low touches, Low digits <10%, Second high: ${analysis.secondDigit}`, 'info');
+      const contractType = document.getElementById('contractType').value;
+      const contractName = contractType === 'DIGITOVER' ? 'Over 2' : 'Under 2';
+      const contractDisplay = contractType === 'DIGITOVER' ? '📈 Over 2' : '📉 Under 2';
+      
+      addMini(`🎯 EXECUTING PERFECT ${contractName.toUpperCase()} TRADE #${state.sessionRuns}`, 'success');
+      addMini(`📊 Conditions: ${state.lowDigitTouches} low touches, Low digits <10%, Top high: ${analysis.topDigit}`, 'info');
       
       // Update barrier display
-      elements.barrierText.textContent = entryDigit;
-      elements.entryType.textContent = `Executing... ${entryDigit} (${tradeType})`;
+      elements.barrierText.textContent = contractName;
+      elements.entryType.textContent = `Executing... ${contractDisplay}`;
       
-      // Send buy request
+      // Send buy request for Over/Under
       ws.send(JSON.stringify({
         buy: 1,
         price: state.currentStake,
         parameters: {
           amount: state.currentStake,
           basis: 'stake',
-          contract_type: 'DIGITMATCH',
+          contract_type: contractType, // DIGITOVER or DIGITUNDER
           currency: 'USD',
           duration: 1,
           duration_unit: 't',
           symbol: state.market,
-          barrier: entryDigit.toString()
+          barrier: '2' // Over/Under always uses barrier 2
         }
       }));
       
@@ -709,11 +713,13 @@
       updateUI();
     }
 
-    function handleContractResult(profit, barrier) {
+    function handleContractResult(profit) {
       state.waitingResult = false;
       
       const isWin = profit > 0;
       const result = isWin ? 'WIN' : 'LOSS';
+      const contractType = document.getElementById('contractType').value;
+      const contractName = contractType === 'DIGITOVER' ? 'Over 2' : 'Under 2';
       
       // Update stats
       state.totalProfit += profit;
@@ -721,19 +727,19 @@
       if (isWin) {
         state.lossStreak = 0;
         state.currentStake = state.baseStake;
-        addMini(`✅ PERFECT TRADE #${state.sessionRuns} WON! Profit: $${profit.toFixed(2)}`, 'success');
+        addMini(`✅ PERFECT ${contractName.toUpperCase()} TRADE #${state.sessionRuns} WON! Profit: $${profit.toFixed(2)}`, 'success');
       } else {
         state.lossStreak++;
         state.currentStake = state.currentStake * 2;
-        addMini(`❌ PERFECT TRADE #${state.sessionRuns} LOST! Loss: $${Math.abs(profit).toFixed(2)}`, 'error');
+        addMini(`❌ PERFECT ${contractName.toUpperCase()} TRADE #${state.sessionRuns} LOST! Loss: $${Math.abs(profit).toFixed(2)}`, 'error');
       }
       
       // Add to log
-      const analysis = analyzePerfectOver2Strategy();
+      const analysis = analyzePerfectOverUnderStrategy();
       const logEntry = {
         time: new Date().toLocaleTimeString(),
-        barrier: barrier || state.lastBarrier || '?',
-        type: analysis.topDigitIsOdd ? 'Odd' : 'Even',
+        contract: contractName,
+        type: analysis.topDigitIsOdd ? 'Odd High' : 'Even High',
         stake: state.currentStake / (isWin ? 1 : 2),
         result: result,
         profit: profit
@@ -743,7 +749,7 @@
       
       // Check if we've reached max session runs
       if (state.sessionRuns >= state.maxSessionRuns) {
-        addMini(`🎯 PERFECT SESSION COMPLETE - ${state.maxSessionRuns} runs executed!`, 'success');
+        addMini(`🎯 PERFECT SESSION COMPLETE - ${state.maxSessionRuns} ${contractName} trades executed!`, 'success');
         addMini('⏰ STRATEGY: Algorithm likely to change - Take 2-hour break or change market', 'info');
         state.currentPhase = 'SESSION_COMPLETE';
         elements.entryType.textContent = 'Session Complete - Take 2hr Break';
@@ -763,8 +769,8 @@
     // Initialize UI
     updateUI();
     renderFreqBars();
-    addMini('💡 PERFECT OVER 2 STRATEGY ACTIVATED', 'info');
-    addMini('📊 Wait for 2-3 touches on 0,1,2 → Enter on high digit (prefer odd) → 3 runs max', 'info');
+    addMini('💡 PERFECT OVER/UNDER STRATEGY ACTIVATED', 'info');
+    addMini('📊 Wait for 2-3 touches on 0,1,2 → Enter Over/Under → 3 runs max → 2hr break', 'info');
   </script>
 </body>
 </html>
